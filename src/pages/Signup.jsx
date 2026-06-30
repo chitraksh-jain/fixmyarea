@@ -17,7 +17,7 @@ export default function Signup() {
   const { signup } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     if (!name.trim()) { setError('Please enter your full name'); return }
@@ -26,11 +26,11 @@ export default function Signup() {
     if (password !== confirmPass) { setError('Passwords do not match'); return }
 
     try {
-      signup(name, email, password, role)
+      await signup(name, email, password, role)
       toast.success('Account created successfully! 🎉')
       navigate('/')
-    } catch {
-      setError('Signup failed. Please try again.')
+    } catch (err) {
+      setError(err.message || 'Signup failed. Please try again.')
     }
   }
 

@@ -14,7 +14,7 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     if (!email.trim()) { setError('Please enter your email'); return }
@@ -22,11 +22,11 @@ export default function Login() {
     if (password.length < 4) { setError('Password must be at least 4 characters'); return }
 
     try {
-      login(email, password)
+      await login(email, password)
       toast.success('Welcome back! 👋')
       navigate('/')
-    } catch {
-      setError('Login failed. Please try again.')
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.')
     }
   }
 
