@@ -1,0 +1,17 @@
+services:
+  # Backend Express Server
+  - type: web
+    name: fixmyarea-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        value: mongodb+srv://admin:password123@cluster0.mongodb.net/fixmyarea?retryWrites=true&w=majority
+      - key: CLIENT_URL
+        value: https://fixmyarea-neon.vercel.app
