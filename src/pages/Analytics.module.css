@@ -1,0 +1,17 @@
+.page { max-width: var(--container-max); margin: 0 auto; padding: var(--space-10) var(--container-padding) var(--space-16); }
+.header { margin-bottom: var(--space-8); }
+.header h2 { margin-bottom: var(--space-2); }
+.chartsGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-bottom: var(--space-8); }
+.chartCard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); transition: var(--transition); }
+.chartCard:hover { box-shadow: var(--shadow); }
+.chartCard h3 { font-size: var(--font-size-base); margin-bottom: var(--space-5); display: flex; align-items: center; gap: var(--space-2); }
+.chartWrap { position: relative; height: 280px; }
+.tableCard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.tableCard h3 { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border); font-size: var(--font-size-lg); }
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; padding: var(--space-3) var(--space-5); font-size: var(--font-size-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); background: var(--surface); border-bottom: 1px solid var(--border); }
+.table td { padding: var(--space-3) var(--space-5); font-size: var(--font-size-sm); border-bottom: 1px solid var(--border-light); }
+.table tr:hover td { background: var(--primary-glow); }
+.progressBar { width: 100%; height: 8px; background: var(--surface); border-radius: var(--radius-full); overflow: hidden; }
+.progressFill { height: 100%; border-radius: var(--radius-full); transition: var(--transition-slow); }
+@media (max-width: 768px) { .chartsGrid { grid-template-columns: 1fr; } }
