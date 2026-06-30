@@ -1,8 +1,9 @@
 services:
-  # Backend Express Server
+  # Backend Express Server (100% Free Plan)
   - type: web
     name: fixmyarea-backend
     env: node
+    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: node server.js
