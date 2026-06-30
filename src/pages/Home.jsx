@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MapPin, ArrowRight, Camera, Activity, FileText, CheckCircle, Users, Clock, ThumbsUp, Sparkles } from 'lucide-react'
-import { mockIssues, getCategoryById, getSeverityById, timeAgo } from '../data/mockData'
+import { api } from '../utils/api'
+import { getCategoryById, getSeverityById, timeAgo } from '../data/mockData'
 import styles from './Home.module.css'
 
 function CountUp({ end, duration = 2000 }) {
@@ -24,7 +25,28 @@ const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }
 
 export default function Home() {
-  const recentIssues = mockIssues.slice(0, 4)
+  const [recentIssues, setRecentIssues] = useState([])
+  const [stats, setStats] = useState({
+    totalIssues: 1248,
+    resolved: 847,
+    citizensActive: 3420,
+    avgResolutionDays: 4.2
+  })
+
+  useEffect(() => {
+    const loadHomeData = async () => {
+      try {
+        const issuesData = await api.getIssues()
+        setRecentIssues(issuesData.slice(0, 4))
+
+        const statsData = await api.getSummary()
+        setStats(statsData)
+      } catch (err) {
+        console.error('Error loading home data:', err)
+      }
+    }
+    loadHomeData()
+  }, [])
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
@@ -54,10 +76,10 @@ export default function Home() {
       <section className={styles.stats}>
         <motion.div className={styles.statsGrid} variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
           {[
-            { icon: FileText, num: 1248, label: 'Issues Reported', bg: '#ECFDF5', color: '#059669' },
-            { icon: CheckCircle, num: 847, label: 'Issues Resolved', bg: '#D1FAE5', color: '#047857' },
-            { icon: Users, num: 3420, label: 'Active Citizens', bg: '#DBEAFE', color: '#3B82F6' },
-            { icon: Clock, num: 4.2, label: 'Avg Days to Fix', bg: '#FEF3C7', color: '#F59E0B' },
+            { icon: FileText, num: stats.totalIssues, label: 'Issues Reported', bg: '#ECFDF5', color: '#059669' },
+            { icon: CheckCircle, num: stats.resolved, label: 'Issues Resolved', bg: '#D1FAE5', color: '#047857' },
+            { icon: Users, num: stats.citizensActive, label: 'Active Citizens', bg: '#DBEAFE', color: '#3B82F6' },
+            { icon: Clock, num: stats.avgResolutionDays, label: 'Avg Days to Fix', bg: '#FEF3C7', color: '#F59E0B' },
           ].map((s, i) => (
             <motion.div key={i} className={styles.statCard} variants={fadeUp}>
               <div className={styles.statIcon} style={{ background: s.bg, color: s.color }}><s.icon size={26} /></div>
@@ -98,11 +120,11 @@ export default function Home() {
         </div>
         <motion.div className={styles.issuesGrid} variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
           {recentIssues.map(issue => {
-            const cat = getCategoryById(issue.category)
-            const sev = getSeverityById(issue.severity)
+            const cat = getCategoryById(issue.category) || { color: '#6B7280', label: issue.category }
+            const sev = getSeverityById(issue.severity) || { color: '#6B7280', label: issue.severity }
             return (
-              <motion.div key={issue.id} variants={fadeUp}>
-                <Link to={`/issue/${issue.id}`} className={styles.issueCard}>
+              <motion.div key={issue.id || issue._id} variants={fadeUp}>
+                <Link to={`/issue/${issue.id || issue._id}`} className={styles.issueCard}>
                   <div className={styles.issueTop}>
                     <span className={styles.catBadge} style={{ background: cat.color + '18', color: cat.color }}>{cat.label}</span>
                     <span className={styles.sevBadge} style={{ background: sev.color + '18', color: sev.color }}>{sev.label}</span>

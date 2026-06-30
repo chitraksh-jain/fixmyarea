@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { api } from '../utils/api'
 
 const AuthContext = createContext(null)
 
@@ -7,48 +8,38 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check localStorage for existing session
-    const saved = localStorage.getItem('fixmyarea_user')
-    if (saved) {
-      try { setUser(JSON.parse(saved)) } catch { localStorage.removeItem('fixmyarea_user') }
+    const initAuth = async () => {
+      const token = localStorage.getItem('fixmyarea_token')
+      if (token) {
+        try {
+          const profile = await api.getProfile()
+          setUser(profile)
+        } catch {
+          localStorage.removeItem('fixmyarea_token')
+        }
+      }
+      setLoading(false)
     }
-    setLoading(false)
+    initAuth()
   }, [])
 
-  const login = (email, password) => {
-    // Mock login — in production this would call an API
-    const userData = {
-      id: 'u1',
-      name: email.split('@')[0].replace(/[^a-zA-Z]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      email,
-      role: 'citizen',
-      points: 0,
-      reportsCount: 0,
-      joinedDate: new Date().toISOString().split('T')[0],
-    }
-    setUser(userData)
-    localStorage.setItem('fixmyarea_user', JSON.stringify(userData))
-    return userData
+  const login = async (email, password) => {
+    const data = await api.login(email, password)
+    setUser(data.user)
+    localStorage.setItem('fixmyarea_token', data.token)
+    return data.user
   }
 
-  const signup = (name, email, password, role = 'citizen') => {
-    const userData = {
-      id: 'u_' + Date.now(),
-      name,
-      email,
-      role,
-      points: 0,
-      reportsCount: 0,
-      joinedDate: new Date().toISOString().split('T')[0],
-    }
-    setUser(userData)
-    localStorage.setItem('fixmyarea_user', JSON.stringify(userData))
-    return userData
+  const signup = async (name, email, password, role = 'citizen') => {
+    const data = await api.signup(name, email, password, role)
+    setUser(data.user)
+    localStorage.setItem('fixmyarea_token', data.token)
+    return data.user
   }
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem('fixmyarea_user')
+    localStorage.removeItem('fixmyarea_token')
   }
 
   return (

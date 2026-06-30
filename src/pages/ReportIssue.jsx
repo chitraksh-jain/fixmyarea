@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import toast from 'react-hot-toast'
+import { api } from '../utils/api'
 import {
   MapPin, Upload, ArrowLeft, ArrowRight, Check, Send, Navigation,
   Keyboard, X, Loader2, CheckCircle,
@@ -143,23 +144,55 @@ export default function ReportIssue() {
   }
 
   // Submit
-  const handleSubmit = () => {
-    // Generate a tracking ID
-    const trackingId = 'FMA-' + Date.now().toString(36).toUpperCase().slice(-6)
-    // Store the report for the success page
-    const report = {
-      trackingId,
-      title,
-      description,
-      category: CATEGORIES.find(c => c.id === category)?.label,
-      severity: SEVERITIES.find(s => s.id === severity)?.label,
-      address: address.street ? `${address.street}, ${address.area}, ${address.city}` : 'Map pinned location',
-      position,
-      photosCount: photos.length,
-      submittedAt: new Date().toISOString(),
+  const handleSubmit = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('category', category);
+      formData.append('severity', severity);
+      
+      const fullAddr = address.street ? `${address.street}, ${address.area}, ${address.city}` : 'Map pinned location';
+      formData.append('address', fullAddr);
+      
+      if (position) {
+        formData.append('lat', position[0]);
+        formData.append('lng', position[1]);
+      } else {
+        // default center coordinates fallback
+        formData.append('lat', 26.9124);
+        formData.append('lng', 75.7873);
+      }
+
+      photos.forEach(photo => {
+        formData.append('photos', photo.file);
+      });
+
+      toast.loading('Submitting report...', { id: 'submit_loading' });
+      const newIssue = await api.createIssue(formData);
+      toast.dismiss('submit_loading');
+
+      const trackingId = newIssue.id || newIssue._id || 'FMA-' + Date.now().toString(36).toUpperCase().slice(-6);
+
+      const report = {
+        trackingId,
+        title: newIssue.title,
+        description: newIssue.description,
+        category: CATEGORIES.find(c => c.id === newIssue.category)?.label || newIssue.category,
+        severity: SEVERITIES.find(s => s.id === newIssue.severity)?.label || newIssue.severity,
+        address: newIssue.address,
+        position: newIssue.location?.coordinates ? [newIssue.location.coordinates[1], newIssue.location.coordinates[0]] : position,
+        photosCount: photos.length,
+        submittedAt: newIssue.createdAt || new Date().toISOString(),
+      };
+      
+      sessionStorage.setItem('lastReport', JSON.stringify(report));
+      toast.success('Issue reported successfully! 🎉');
+      navigate('/submit-success');
+    } catch (error) {
+      toast.dismiss('submit_loading');
+      toast.error(error.message || 'Failed to submit report');
     }
-    sessionStorage.setItem('lastReport', JSON.stringify(report))
-    navigate('/submit-success')
   }
 
   const stepAnim = { initial: { opacity: 0, x: 40 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -40 }, transition: { duration: 0.3 } }
@@ -239,7 +272,7 @@ export default function ReportIssue() {
                 <div className={styles.field}>
                   <label>{locMethod === 'map' ? '📍 Click on the map to pin the exact location' : '📍 Your detected location (you can adjust by clicking)'}</label>
                   <div className={styles.mapBox}>
-                    <MapContainer center={position || [12.9716, 77.5946]} zoom={position ? 16 : 13} scrollWheelZoom={true}>
+                    <MapContainer center={position || [26.9124, 75.7873]} zoom={position ? 16 : 13} scrollWheelZoom={true}>
                       <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

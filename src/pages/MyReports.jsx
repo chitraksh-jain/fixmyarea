@@ -1,23 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FileText, CheckCircle, Clock, MapPin, ThumbsUp } from 'lucide-react'
-import { mockIssues, getCategoryById, getSeverityById, getStatusById, timeAgo } from '../data/mockData'
+import { api } from '../utils/api'
+import { useAuth } from '../context/AuthContext'
+import { getCategoryById, getSeverityById, getStatusById, timeAgo } from '../data/mockData'
 import styles from './MyReports.module.css'
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
 export default function MyReports() {
+  const [issues, setIssues] = useState([])
   const [filter, setFilter] = useState('all')
-  const myIssues = mockIssues.filter(i => i.reportedBy === 'u1' || i.reportedBy === 'u3')
-  const resolved = myIssues.filter(i => i.status === 'resolved').length
-  const pending = myIssues.length - resolved
+  const { user } = useAuth()
 
-  const filtered = filter === 'all' ? myIssues
-    : filter === 'resolved' ? myIssues.filter(i => i.status === 'resolved')
-    : filter === 'in_progress' ? myIssues.filter(i => i.status === 'in_progress')
-    : myIssues.filter(i => i.status === 'reported' || i.status === 'acknowledged')
+  useEffect(() => {
+    const fetchMyIssues = async () => {
+      try {
+        const data = await api.getIssues()
+        // Filter issues reported by current logged in user
+        const userId = user?.id || user?._id
+        const filteredData = data.filter(i => {
+          const reporterId = i.reportedBy?._id || i.reportedBy?.id || i.reportedBy
+          return reporterId === userId
+        })
+        setIssues(filteredData)
+      } catch (err) {
+        console.error('Error fetching my issues:', err)
+      }
+    }
+    if (user) fetchMyIssues()
+  }, [user])
+
+  const resolved = issues.filter(i => i.status === 'resolved').length
+  const pending = issues.length - resolved
+
+  const filtered = filter === 'all' ? issues
+    : filter === 'resolved' ? issues.filter(i => i.status === 'resolved')
+    : filter === 'in_progress' ? issues.filter(i => i.status === 'in_progress')
+    : issues.filter(i => ['reported', 'acknowledged'].includes(i.status))
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -35,7 +57,7 @@ export default function MyReports() {
 
       <div className={styles.statsRow}>
         {[
-          { icon: FileText, num: myIssues.length, label: 'Total Reports', bg: '#ECFDF5', color: '#059669' },
+          { icon: FileText, num: issues.length, label: 'Total Reports', bg: '#ECFDF5', color: '#059669' },
           { icon: CheckCircle, num: resolved, label: 'Resolved', bg: '#D1FAE5', color: '#047857' },
           { icon: Clock, num: pending, label: 'Pending', bg: '#FEF3C7', color: '#F59E0B' },
         ].map((s, i) => (
@@ -60,12 +82,12 @@ export default function MyReports() {
       ) : (
         <motion.div className={styles.grid} variants={stagger} initial="hidden" animate="visible">
           {filtered.map(issue => {
-            const cat = getCategoryById(issue.category)
-            const sev = getSeverityById(issue.severity)
-            const status = getStatusById(issue.status)
+            const cat = getCategoryById(issue.category) || { color: '#6B7280', label: issue.category }
+            const sev = getSeverityById(issue.severity) || { color: '#6B7280', label: issue.severity }
+            const status = getStatusById(issue.status) || { color: '#6B7280', label: issue.status }
             return (
-              <motion.div key={issue.id} variants={fadeUp}>
-                <Link to={`/issue/${issue.id}`} className={styles.card}>
+              <motion.div key={issue.id || issue._id} variants={fadeUp}>
+                <Link to={`/issue/${issue.id || issue._id}`} className={styles.card}>
                   <div className={styles.cardTop}>
                     <div><span className={styles.dot} style={{ background: cat.color }} /><span className={styles.catLabel}>{cat.label}</span></div>
                     <span className={styles.sevBadge} style={{ background: sev.color + '18', color: sev.color }}>{sev.label}</span>

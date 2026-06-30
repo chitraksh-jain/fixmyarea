@@ -1,18 +1,43 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FileText, Clock, Loader, CheckCircle, Eye, Download, Settings } from 'lucide-react'
-import { mockIssues, mockStats, departmentPerformance, getCategoryById, getSeverityById, getStatusById, formatDate } from '../data/mockData'
+import { api } from '../utils/api'
+import { departmentPerformance, getCategoryById, getSeverityById, getStatusById, formatDate } from '../data/mockData'
 import styles from './Dashboard.module.css'
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }
 
 export default function Dashboard() {
+  const [issues, setIssues] = useState([])
+  const [statsSummary, setStatsSummary] = useState({
+    totalIssues: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0
+  })
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const issuesData = await api.getIssues()
+        setIssues(issuesData)
+
+        const summaryData = await api.getSummary()
+        setStatsSummary(summaryData)
+      } catch (err) {
+        console.error('Error loading dashboard data:', err)
+      }
+    }
+    loadDashboardData()
+  }, [])
+
   const stats = [
-    { icon: FileText, num: mockStats.totalIssues.toLocaleString(), label: 'Total Issues', bg: '#ECFDF5', color: '#059669' },
-    { icon: Clock, num: mockStats.pending, label: 'Pending', bg: '#FEF3C7', color: '#F59E0B' },
-    { icon: Loader, num: mockStats.inProgress, label: 'In Progress', bg: '#DBEAFE', color: '#3B82F6' },
-    { icon: CheckCircle, num: mockStats.resolved, label: 'Resolved', bg: '#D1FAE5', color: '#047857' },
+    { icon: FileText, num: statsSummary.totalIssues.toLocaleString(), label: 'Total Issues', bg: '#ECFDF5', color: '#059669' },
+    { icon: Clock, num: statsSummary.pending, label: 'Pending', bg: '#FEF3C7', color: '#F59E0B' },
+    { icon: Loader, num: statsSummary.inProgress, label: 'In Progress', bg: '#DBEAFE', color: '#3B82F6' },
+    { icon: CheckCircle, num: statsSummary.resolved, label: 'Resolved', bg: '#D1FAE5', color: '#047857' },
   ]
 
   return (
@@ -41,19 +66,19 @@ export default function Dashboard() {
             <tr><th>ID</th><th>Title</th><th>Category</th><th>Severity</th><th>Status</th><th>Reported</th><th>Action</th></tr>
           </thead>
           <tbody>
-            {mockIssues.slice(0, 8).map(issue => {
-              const cat = getCategoryById(issue.category)
-              const sev = getSeverityById(issue.severity)
-              const status = getStatusById(issue.status)
+            {issues.slice(0, 8).map(issue => {
+              const cat = getCategoryById(issue.category) || { color: '#6B7280', label: issue.category }
+              const sev = getSeverityById(issue.severity) || { color: '#6B7280', label: issue.severity }
+              const status = getStatusById(issue.status) || { color: '#6B7280', label: issue.status }
               return (
-                <tr key={issue.id}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '12px' }}>{issue.id}</td>
+                <tr key={issue.id || issue._id}>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '12px' }}>{issue.id || issue._id}</td>
                   <td style={{ fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{issue.title}</td>
                   <td><span className={styles.pill} style={{ background: cat.color + '18', color: cat.color }}>{cat.label}</span></td>
                   <td><span className={styles.pill} style={{ background: sev.color + '18', color: sev.color }}>{sev.label}</span></td>
                   <td><span className={styles.pill} style={{ background: status.color + '18', color: status.color }}>{status.label}</span></td>
                   <td style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{formatDate(issue.createdAt)}</td>
-                  <td><Link to={`/issue/${issue.id}`} className={styles.viewBtn}>View</Link></td>
+                  <td><Link to={`/issue/${issue.id || issue._id}`} className={styles.viewBtn}>View</Link></td>
                 </tr>
               )
             })}
